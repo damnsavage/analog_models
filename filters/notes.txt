@@ -1,0 +1,49 @@
+How to model filters in Verilog AMS??
+Found some documents from google.
+
+Ideally I want to just specify the gain and cutoff frequencies...
+
+Verilog-A models use differential equations dV = dt I/C
+   slow to simulate, simulator chooses timestep
+   You can use the laplace_nd function to calculate the laplace transform of the filter (numerator, denominator)
+     laplace_nd(expr, n, d[, epsilon])
+   Or the z-transform
+     zi_nd(expr, n, d, T[,tau[,t0]])
+
+Real number models use difference equations deltaV = deltaT I/C
+   accurate for small deltaT 
+
+
+Some usefull info in this Mixed Signal Methodology guide.
+Book from Aleksandar  
+   http://m.eet.com/media/1171203/ms-part3.pdf
+   In particular skip to page 51:
+
+Real Number Modeling
+In Real Number Modeling (RNM), analog voltages are represented as a time-varying sequence 
+of real values. This is actually very similar to what analog simulators do. The difference is that in 
+a typical analog simulator, the models define a set of equations. The simulator augments this via 
+addition of topology constraints using Kirchoff’s laws, and then it solves the overall constrained 
+system(s) of simultaneous equations at each timestep to compute the voltages and currents from 
+those equations. In a discrete real environment, there is no voltage vs. current equations, there 
+are no Kirchoff’s laws, and there is no simultaneous equation solution step – the output is directly 
+computed from the input, ignoring currents and other feedback mechanisms that could have 
+caused interdependencies between drive and load in an electrical environment.
+This may appear to be too abstract. It is certainly a big step away from transistor-level simulation. 
+However, when defining behavior at a level significantly higher than the transistor-level, much 
+of the system is described in terms of direct relationships: when something occurs at an input, it 
+is processed by the block (compared, scaled, translated, filtered, delayed, slewed, etc.) to produce 
+an output signal, which is then processed by the block it is connected to. Thus the concept of 
+discrete RNM is highly applicable to system investigation through system verification – which 
+constitutes most of the verification testing that is needed. It is already common practice to verify 
+subsystems at the transistor level, and then use behavioral models in higher-level simulations, 
+so it is a natural extension to create that behavioral model using real rather than AMS modeling 
+techniques to provide optimal throughput in all of the remaining higher-level simulation tasks.
+The concept of RNM is straightforward. If the input/output relationship is a direct transfer 
+characteristic, a mathematical expression can be written that describes how to update the output 
+whenever the input changes. Checking for proper biasing is also simple. The power supply, 
+bias current and voltage inputs would be passed into the model as real numbers. The simulator 
+
+
+
+

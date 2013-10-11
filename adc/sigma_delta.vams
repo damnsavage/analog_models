@@ -1,0 +1,39 @@
+module sigma_delta (Ain, clk_1mhz, reset_n, Dout);
+    input  Ain, clk_1mhz, reset_n;
+    output Dout;
+
+    wreal  Ain;           // real input
+    reg    Dout;          // digital output
+
+    real   sdm_sign_val;  // internal signals
+    real   sdm_sum1; 
+    real   sdm_sum2;
+    real   dlay[2:1];
+
+    initial 
+    begin
+        sdm_sum1     = 0.0;
+        sdm_sum2     = 0.0;
+        sdm_sign_val = 0.0;
+    end
+
+    always @(negedge clk_1mhz) 
+    begin
+        dlay[1] = sdm_sum1;  // previous values
+        dlay[2] = sdm_sum2;
+
+        // sum1 and sum2
+        sdm_sum1 = (Ain/8.0)      + dlay[1] - (sdm_sign_val/8);
+        sdm_sum2 = (sdm_sum1/2.0) + dlay[2] - (sdm_sign_val/8);
+
+        sdm_sign_val = (dlay[2] > 0.0)  ? 1.0 :
+                       (dlay[2] == 0.0) ? 0.0 :
+                                         -1.0 ;
+
+        if (sdm_sign_val < 0.0)
+             Dout = 0;
+        else
+             Dout = 1; 
+    end
+
+endmodule

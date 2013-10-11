@@ -1,0 +1,27 @@
+//
+//  Vin ---\/\/----> Vout
+//             _|_
+//             ___
+//              |
+//             ---
+//              -
+//
+model rc_filter();
+    parameter real R,C;
+
+    real Vin;  // input voltage
+    real Ir;   // resistor current
+    real Vout; // output voltage
+    real lasttime; // last time model was evaluated
+    initial begin
+        Vout = 0.0;
+        lsttim = 0.0;
+    end 
+
+    always @(Vin) begin
+        Ir = (Vin - Vout)/R;
+        Vout = Vout + Ir * ($abstime - lasttime)/C
+        lasttime = $realtime;
+    end
+
+endmodule

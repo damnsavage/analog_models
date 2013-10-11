@@ -1,0 +1,45 @@
+module adc_stereo (
+    clk,rst_an,
+    q_dm_out0,q_cm_out0,q_dm_out1,q_cm_out1,
+    iinn0,iinp0,
+    iinn1,iinp1
+    );
+
+    // clocks/syncs/resets
+    input                 clk;
+    input              rst_an;
+
+    // comparator outputs
+    output           q_dm_out0;
+    output           q_cm_out0;
+    output           q_dm_out1;
+    output           q_cm_out1;
+
+    // analog signals
+    inout                iinn0;
+    inout                iinp0;
+    inout                iinn1;
+    inout                iinp1;
+
+    real         ana_single_in0;
+    real         ana_single_in1;
+
+//  wreal iinn0, iinp0, iinn1, iinp1;
+
+    // convert differential signal to single ended
+//    always @ (clk)
+//    begin
+//       ana_single_in0 = iinp0 - iinn0;
+//       ana_single_in1 = iinp1 - iinn1;
+//    end
+
+    sigma_delta adc0 (.Ain(ana_single_in0), .clk_1mhz(clk), .reset_n(rst_an), .Dout(q_dm_out0));
+    sigma_delta adc1 (.Ain(ana_single_in1), .clk_1mhz(clk), .reset_n(rst_an), .Dout(q_dm_out1));
+
+    // Assign outputs
+    assign q_cm_out0 = 0;
+    assign q_cm_out1 = 0;
+    assign q_xm_out1 = 0;
+    assign q_xm_out2 = 0;
+
+endmodule

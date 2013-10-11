@@ -1,0 +1,12 @@
+*~
+*.log
+*.shm/
+INCA_libs/
+*SimDB/
+.simvision/
+irun.key
+.cadence
+*.trn
+*.dsn
+*.orig
+

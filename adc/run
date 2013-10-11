@@ -1,0 +1,5 @@
+#!/bin/bash
+irun -gui -access rwc -wreal_resolution avg \
+    -amsconnrules ConnRules_18V_dms /cadappl_sde/ictools/cadence_incisive/12.20.011/tools.lnx86/affirma_ams/etc/connect_lib/*.vams \
+    -ieinfo +wreal_info +DR_INFO \
+    sigma_delta.vams adc_stereo.m.vams tb.vams

@@ -1,0 +1,39 @@
+module tb ();
+   reg clk, rst;
+   wreal iinn0, iinp0, iinn1, iinp1;
+   wire  q_dm0, q_dm1;
+
+   real iinn0_s, iinp0_s, iinn1_s, iinp1_s;
+
+   adc_stereo dual_sd_adc ( 
+       .clk(clk), .rst_an(rst),
+       .q_dm_out0(q_dm0), .q_cm_out0(), .q_dm_out1(q_dm1), .q_cm_out1(),
+       .iinn0(iinn0), .iinp0(iinp0),
+       .iinn1(iinn1), .iinp1(iinp1)
+   );
+
+   initial begin
+      clk = 0;
+      rst = 1;
+      #(10);
+      rst = 0;
+      repeat (1000) #10 clk = ~clk;
+
+      // report the results
+      $display("SIMULATION COMPLETE");
+      $stop(2);
+   end
+
+   always @(clk) begin
+       iinn0_s = $itor($random)/2147483647;  // Normalized random real
+       iinp0_s = $itor($random)/2147483647;
+       iinn1_s = $itor($random)/2147483647;
+       iinp1_s = $itor($random)/2147483647;
+   end
+
+   assign iinn0 = iinn0_s;
+   assign iinp0 = iinp0_s;
+   assign iinn1 = iinn1_s;
+   assign iinp1 = iinp1_s;
+
+endmodule
