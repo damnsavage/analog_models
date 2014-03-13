@@ -1,14 +1,15 @@
 `timescale 1ps/1ps
 
-`define JITTER_ENABLE
-`define JITTER 0.2     // 20% Jitter means period +/- 20%
+//`define JITTER_ENABLE
+//`define JITTER 0.2     // 20% Jitter means period +/- 20%
+//`define PLL_DEBUG
 
 module amos_c14pl550m_flf ( clkfbo, clkout, clkrefo, fr, lock, mack, nack, out0,
        out1, pack, so, gnd, gnda, vcon, vdd, vdda, async_test, bandsel, bypass, 
        clk_test, clken, clkin, directi, directo, frm, inseli, inselp, inselr,
        limup_off, logic_scantest, mdec, mreq, ndec, nreq, pd, pdec, preq, se,
        seli, selp, selr, si, skew_en, skewin);
- 
+
     output clkout;
     output fr;
     output lock;
@@ -17,7 +18,7 @@ module amos_c14pl550m_flf ( clkfbo, clkout, clkrefo, fr, lock, mack, nack, out0,
     output pack;
     output so;
     inout vdda;
-    inout gnda;    
+    inout gnda;
     input bypass;              // bypass pll
     input clken;
     input clkin;
@@ -35,11 +36,11 @@ module amos_c14pl550m_flf ( clkfbo, clkout, clkrefo, fr, lock, mack, nack, out0,
     input skew_en;
     input bandsel;             // select between filter parameters sel-0 or insel-1
     input [3:0] inselr;        // filter parameters r,i,p
-    input [3:0] inseli;        
+    input [3:0] inseli;
     input [4:0] inselp;
     input [3:0] selr;          // filter parameters r,i,p
     input [3:0] seli;
-    input [4:0] selp;    
+    input [4:0] selp;
     input skewin;
     input clk_test;
     input si;
@@ -53,12 +54,6 @@ module amos_c14pl550m_flf ( clkfbo, clkout, clkrefo, fr, lock, mack, nack, out0,
     inout vcon;   
     inout gnd;
     inout vdd;
-        
-    // don't drive INOUT ports
-    assign  vdda = 1'bz;
-    assign  gnda = 1'bz;     
-    assign  vdd = 1'bz;
-    assign  gnd = 1'bz;    
 
     time    last_tick;
     time    clkin_period_inst;
@@ -66,7 +61,7 @@ module amos_c14pl550m_flf ( clkfbo, clkout, clkrefo, fr, lock, mack, nack, out0,
     time    clkin_period_avg_str;
     real    clkout_period_fix;        // Real to increase clkout f precision
     integer clkout_period_jit;        // period with jitter
-    
+
     reg        clkout_int;
     reg        lock_int = 0;
     reg [16:0] mdec_reg = 10;
@@ -82,17 +77,17 @@ module amos_c14pl550m_flf ( clkfbo, clkout, clkrefo, fr, lock, mack, nack, out0,
         clkin_period_inst = 100;
         clkin_period_avg = 100;
         clkin_period_avg_str = 100;
-        clkout_period_fix = 100;        
-        clkout_period_jit = 100;        
+        clkout_period_fix = 100;
+        clkout_period_jit = 100;
     end
 
     always @(pd)
     begin
         if (pd == 0) // negedge
         begin
-            mdec_reg = mdec;
-            pdec_reg = pdec;
-            ndec_reg = ndec;
+            mdec_reg = mdec + 1;  // Add one to signal value
+            pdec_reg = pdec + 1;
+            ndec_reg = ndec + 1;
         end
         else         // posedge
         begin
@@ -103,7 +98,7 @@ module amos_c14pl550m_flf ( clkfbo, clkout, clkrefo, fr, lock, mack, nack, out0,
 
     // Measure average input clock frequency
     // When it changes the pll loses lock
-    always @(posedge clkin) 
+    always @(posedge clkin)
     begin
         clkin_period_inst = $time - last_tick;
         // cumulative average reset every 20 clock cycles
@@ -121,7 +116,7 @@ module amos_c14pl550m_flf ( clkfbo, clkout, clkrefo, fr, lock, mack, nack, out0,
         end
         last_tick = $time;
     end
-    
+
     // Calculate output clock frequency on changed of parameters
     always @(mdec_reg, pdec_reg, ndec_reg, clkin_period_inst, directi, directo)
     begin
@@ -132,43 +127,67 @@ module amos_c14pl550m_flf ( clkfbo, clkout, clkrefo, fr, lock, mack, nack, out0,
             2'b00 : clkout_period_fix = ndec_reg * ( $itor(clkin_period_inst) / (2 * mdec_reg) ) * (2 * pdec_reg);
         endcase
         lock_int = 0;
-        $display("PLL clkout frequency changing to %f Hz",1.0/$itor(clkout_period_fix)*1e12); // Assume timescale picoseconds
+        $display("PLL clkout frequency changing to %f Hz",(1.0/clkout_period_fix)*1e12); // Assume timescale picoseconds
     end
-    
+
     // Create the output clock
     always begin
         // Add jitter to clkout
         `ifdef JITTER_ENABLE
             // Uniform distribution. Gaussian would probably be better...
-            jitter = $random % ($rtoi((clkout_period_fix * (`JITTER))));
+            jitter = $random % ($rtoi((clkout_period_fix * (`JITTER)))); // change to (`JITTER >> 1), if you want 0.1 to mean +/- 5%
         `else
             jitter = 0;
         `endif
         clkout_period_jit = clkout_period_fix + jitter;
-//        $display("Jitter ",`JITTER*100,"%%  clkout period=",clkout_period_fix,"ps, jitter ",jitter,"ps"); // debug only
+        `ifdef PLL_DEBUG
+            $display("-*-*-*-");
+            $display("mdec=%10d",mdec_reg,"\npdec=%10d",pdec_reg,"\nndec=%10d",ndec_reg);
+            $display("clkin_period_avg_str=%15d",clkin_period_avg_str,"ps\nclkout period       =%15f",clkout_period_fix,"ps");
+            `ifdef JITTER_ENABLE
+                $display("Jitter ",`JITTER*100,"%%, jitter ",jitter,"ps");
+            `endif
+        `endif
         clkout_int = 0;
         if (clkout_period_jit >= 2)
             #(clkout_period_jit/2);
         else begin
             err_cnt = err_cnt + 1;
-            if (err_cnt < 50) 
+            if (err_cnt < 50)
                 $display("ERROR - PLL_MODEL: Invalid zero clkout period @",$time);
             #(1000);
         end
         clkout_int = 1;
         #(clkout_period_jit/2);
     end
- 
+
     // Drive outputs
-    assign clkout = (vdd !== 1 || vdda !== 1 || gnd !== 0 || gnda !== 0 || pd !== 0) ? 1'bx : 
-                    (clken == 0) ? 0 : 
+    assign clkout = (vdd !== 1 || vdda !== 1 || gnd !== 0 || gnda !== 0 || pd !== 0) ? 1'bx :
+                    (clken === 0) ? 0 :
                     (bypass == 0) ? clkout_int : clkin;
 
-    assign lock = (vdd !== 1 || vdda !== 1 || gnd !== 0 || gnda !== 0 || pd !== 0) ? 1'bx : 
+    assign lock = (vdd !== 1 || vdda !== 1 || gnd !== 0 || gnda !== 0 || pd !== 0) ? 1'bx :
                   lock_int;
 
-    
+
+    // don't drive INOUT ports
+    assign  vdda = 1'bz;
+    assign  gnda = 1'bz;
+    assign  vdd = 1'bz;
+    assign  gnd = 1'bz;
+
+    // Assign unused outputs to zero, otherwards they will be z
+    assign fr      = 0;
+    assign mack    = 0;
+    assign nack    = 0;
+    assign pack    = 0;
+    assign so      = 0;
+    assign clkrefo = 0;
+    assign clkfbo  = 0;
+    assign out0    = 0;  // must be tied off to 0
+    assign out1    = 1;  // must be tied off to 1
+
     // Assertions: *** Below is the only SystemVerilog code ***
     // 1. Check that the mdec,ndec, pdec signals are stable at pd falling edge
-    
+
 endmodule
